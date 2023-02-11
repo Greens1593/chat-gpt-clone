@@ -1,6 +1,8 @@
 import bot from "./assets/bot.svg";
 import user from "./assets/user.svg";
 
+import { serverAdress } from "./key.js";
+
 const form = document.querySelector("form");
 const chatContainer = document.querySelector("#chat_container");
 
@@ -11,7 +13,7 @@ const loader = (element) => {
   loadInterval = setInterval(() => {
     element.textContent += ".";
 
-    if (element === "...") {
+    if (element.textContent === "....") {
       element.textContent = "";
     }
   }, 300);
@@ -21,7 +23,7 @@ const typeText = (element, text) => {
   let index = 0;
   let interval = setInterval(() => {
     if (index < text.length) {
-      element.inerHTML += text.chartAt(index);
+      element.innerHTML += text.charAt(index);
       index++;
     } else {
       clearInterval(interval);
@@ -73,9 +75,37 @@ const handleSubmit = async (e) => {
   chatContainer.scrollTop = chatContainer.scrollHeight;
 
   const messageDiv = document.getElementById(uniqueId);
-  console.log(messageDiv);
 
   loader(messageDiv);
+
+  // fetch data from server
+
+  const response = await fetch(serverAdress, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      prompt: data.get("prompt"),
+    }),
+  });
+
+  clearInterval(loadInterval);
+  messageDiv.innerHTML = "";
+
+  if (response.ok) {
+    const data = await response.json();
+    const parsedData = data.bot.trim();
+
+    typeText(messageDiv, parsedData);
+  } else {
+    const err = await response.text();
+
+    messageDiv.innerHTML = "Something went wrong";
+
+    console.log(err);
+    alert(err);
+  }
 };
 
 form.addEventListener("submit", handleSubmit);
